@@ -1,0 +1,265 @@
+/*
+
+int PIN_SCE = 7 ; //SS
+
+int PIN_RESET = 6;
+
+int PIN_DC = 5; // data
+
+int PIN_SDIN = 11 ; //MOSI SIMO
+
+int PIN_SCLK =13 ; //CLK SCLK
+
+int PIN_BL =9 ; //BL LED
+
+int PIN_VCC =4 ; //Vcc +-
+
+*/
+
+int PIN_SCE = 6; //SS
+
+int PIN_RESET = 7;
+
+int PIN_DC = 5; // data
+
+int PIN_SDIN = 4 ; //MOSI SIMO
+
+int PIN_SCLK =3 ; //CLK SCLK
+
+int PIN_BL =9 ; //BL LED
+
+int PIN_VCC =2 ; //Vcc +-
+
+#define BUTTON_D 8
+
+#define BUTTON_U 9
+
+#define BUTTON_L 10
+
+#define BUTTON_R 11
+
+#define LCD_C LOW //command
+
+#define LCD_D HIGH //data high command low.
+
+#define LCD_X 84 ///character area //
+
+#define LCD_Y 48 //consists of banks of 7 by eight pixels.//
+
+#define LCD_DATA 1
+
+void posmarker() {LcdWrite( 0, 0x80|0); LcdWrite( 0, 0x40|0);}
+
+void LcdClear(void) {for(int index = 0; index < 504; index++){LcdWrite(LCD_D, 0x00);}}
+
+void LcdWrite(byte dc, byte data) {digitalWrite(PIN_DC, dc); digitalWrite(PIN_SCE, LOW);
+
+shiftOut(PIN_SDIN, PIN_SCLK, MSBFIRST, data); digitalWrite(PIN_SCE, HIGH);}
+
+void initialise() {pinMode(PIN_VCC, OUTPUT);
+
+pinMode(PIN_SCE, OUTPUT); pinMode(PIN_RESET, OUTPUT);
+
+pinMode(PIN_DC, OUTPUT);
+
+pinMode(PIN_SDIN, OUTPUT); pinMode(PIN_SCLK, OUTPUT);
+
+pinMode(PIN_BL, OUTPUT);
+
+digitalWrite(PIN_VCC, HIGH);
+
+digitalWrite(PIN_RESET, LOW); digitalWrite(PIN_RESET, HIGH);
+
+LcdWrite(0, 0x21); //Tell LCD that extended commands follow
+
+LcdWrite(0, 0xB1); //Set LCD Vop (Contrast): Try 0xB1(good @ 3.3V) or
+
+0xBF if your display is too dark
+
+LcdWrite(0, 0x04); //Set Temp coefficent
+
+LcdWrite(0, 0x13); //LCD bias mode 1:48: Try 0x13 or 0x14
+
+LcdWrite(0, 0x20); //We must send 0x20 before modifying the display
+
+control mode
+
+LcdWrite(0, 0x0C); //Set display control, normal mode. 0x0D for inverse
+
+//digitalWrite(PIN_BL, HIGH);
+
+}
+
+void position(char x2,char y2)
+
+{
+
+//maina tekosho kursora poziciju uz x2,y2
+
+LcdWrite( 0, 0x80|x2);LcdWrite( 0, 0x40|y2);
+
+}
+
+void kursorsp(char x_, char y_, unsigned char X)
+
+{
+
+//ziimee 2px platu kursoru X poziicijaas x (0-83),y (0-23)
+
+//LcdWrite( 0, 0x80|x_);
+
+//LcdWrite( 0, 0x40|y_>>2);//tas ir y/4 to var saprast ja uzraksta skaitli
+
+binaari
+
+position(x_,y_>>2);
+
+digitalWrite(PIN_DC,HIGH);
+
+digitalWrite(PIN_SCE, LOW);
+
+shiftOut(PIN_SDIN, PIN_SCLK, MSBFIRST,X);
+
+shiftOut(PIN_SDIN, PIN_SCLK, MSBFIRST,X);//lai linija buut biezaaka
+
+attelosim to 2px platu
+
+digitalWrite(PIN_SCE, HIGH);
+
+}
+
+
+
+void kursorspp2(char x_, char y_, char dir)//parvietoshana pa y chuskai ()
+
+{
+
+//speciaals chuskas kursors 2px liels parvietojas pa kolonnu
+
+unsigned char atlikums;
+
+unsigned char kursora_izskats[4] = {0x3,0xF,0x3F,0xFF};
+
+atlikums = y_%4;
+
+
+
+if(dir==-1)//ja iet pa y uz augshu
+
+{
+
+//{atlikums = (~atlikums)&3;}
+
+kursora_izskats[0] = 0xFF;kursora_izskats[1] = 0xFC;kursora_izskats[2] =
+
+0xF0;kursora_izskats[3] = 0xc0;
+
+}
+
+else if(dir==0) //ja parvietojas pa x
+
+{
+
+kursora_izskats[0] = 0x3;kursora_izskats[1] = 0x3<<2;kursora_izskats[2]
+
+= 0x3<<4;kursora_izskats[3] = 0x3<<6;
+
+}
+
+position(x_,y_>>2);
+
+digitalWrite(PIN_DC,HIGH);
+
+digitalWrite(PIN_SCE, LOW);
+
+shiftOut(PIN_SDIN, PIN_SCLK, MSBFIRST,kursora_izskats[atlikums]);
+
+shiftOut(PIN_SDIN, PIN_SCLK, MSBFIRST,kursora_izskats[atlikums]);
+
+digitalWrite(PIN_SCE, HIGH);
+
+}
+
+
+
+
+
+void setup() {initialise(); LcdClear(); posmarker();
+
+pinMode(BUTTON_L, INPUT);pinMode(BUTTON_R,
+
+INPUT);pinMode(BUTTON_U, INPUT);pinMode(BUTTON_D, INPUT);
+
+digitalWrite(BUTTON_L, HIGH);digitalWrite(BUTTON_R,
+
+HIGH);digitalWrite(BUTTON_U, HIGH);digitalWrite(BUTTON_D, HIGH);}
+
+char x = 0, dx=0;
+
+char y = 0, dy=0;
+
+unsigned char
+
+px[100]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+
+0,0,0,0,0},
+
+py[100]={0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,
+
+0,0,0,0,0};
+
+unsigned char ZZ;
+
+unsigned char garums;
+
+unsigned char i;
+
+void loop(){
+
+// pogu apstraade.
+
+if (!digitalRead(BUTTON_L)){dx=-2; dy= 0;}
+
+if (!digitalRead(BUTTON_R)){dx= 2; dy= 0;}
+
+if (!digitalRead(BUTTON_U)){dx= 0; dy= 1;}
+
+if (!digitalRead(BUTTON_D)){dx= 0; dy=-1;}
+
+// cuskas garuma nodrosinaajums
+
+garums = 64;//cuskas garums
+
+for(i=0;i<garums;i++)
+
+{
+
+px[i]=px[i+1];py[i]=py[i+1];//masiivs kas glabaa cuskas iepriekshejas vertiibas
+
+}
+
+px[garums] = x; py[garums] = y;
+
+// cuskas parvietojums
+
+if (x+dx<0) {x=83;} else if (x+dx>83) {x=0;} else {x=x+dx;}
+
+if (y+dy<0) {y=6*4-1;} else if (y+dy>6*4-1) {y=0;} else {y=y+dy;}
+
+// korrektaa atteloshana paarvietojoties pa x,y
+
+kursorspp2(x,y,dy);
+
+delay(200);
+
+//tirishana
+
+//+++++++++++++++++++++++++++
+
+kursorsp(px[0],py[0],0x00);
+
+}
